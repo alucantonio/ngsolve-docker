@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 ENV TZ=Europe/Vienna
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get update && apt install -y git vim cmake python3 python3-tk python3-pip libpython3-dev libxmu-dev tk-dev tcl-dev cmake git clang libglu1-mesa-dev liblapacke-dev
