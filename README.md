@@ -16,9 +16,3 @@ Some simple Dockerfiles to compile and run [netgen/ngsolve](http://ngsolve.org) 
 
 - to start the container created previously:
     ```docker start ngsolve```; to attach current console to that of the running container ```docker attach ngsolve```
-
-- to login via docker:
-    ```docker exec -it ngsolve bash```
-
-- to login via ssh (currently not supported):
-    ```ssh -p 220 -i <somekeyfile> root@localhost```. Note that in order to log with a key file you have to replace the public key while building the ngsolve-base.
