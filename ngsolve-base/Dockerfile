@@ -8,9 +8,18 @@ RUN add-apt-repository ppa:ngsolve/ngsolve
 RUN apt-get update && apt-get install -y ngsolve python3-pip
 RUN pip3 install jupyterlab scipy matplotlib ipywidgets
 
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update && apt-get install -y xfce4 xfce4-goodies tightvncserver nano
+
 RUN useradd -m ngsolve && echo "ngsolve:ngsolve" | chpasswd && adduser ngsolve sudo
 
 # TODO: install and configure some text editor
+
+RUN mkdir /home/ngsolve/.vnc
+COPY xstartup /home/ngsolve/.vnc/xstartup
+RUN chmod +x /home/ngsolve/.vnc/xstartup
+RUN chown -R ngsolve /home/ngsolve/.vnc
+RUN chgrp -R ngsolve /home/ngsolve/.vnc
 
 USER ngsolve
 
@@ -28,3 +37,5 @@ RUN jupyter nbextension enable --user --py ngsolve
 COPY run_jupyterlab.sh /home/ngsolve
 
 WORKDIR /home/ngsolve
+# Needed for vncserver
+ENV USER=ngsolve
