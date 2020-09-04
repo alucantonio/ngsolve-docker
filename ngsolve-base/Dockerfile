@@ -15,6 +15,34 @@ RUN useradd -m ngsolve && echo "ngsolve:ngsolve" | chpasswd && adduser ngsolve s
 
 # TODO: install and configure some text editor
 
+########### Mesa with sofware rendering (swpipe) ###########
+RUN apt-get update && apt-get install -y libtool-bin autoconf libx11-dev libxext-dev x11proto-core-dev x11proto-gl-dev libglew-dev freeglut3-dev bison flex
+
+# Build Mesa
+RUN apt-get install -y wget pkg-config zlib1g-dev llvm-dev
+RUN wget https://mesa.freedesktop.org/archive/mesa-18.2.4.tar.xz
+RUN tar xf mesa-18.2.4.tar.xz
+RUN mkdir mesa-18.2.4/build
+WORKDIR mesa-18.2.4/build
+
+RUN ../configure --disable-dri \
+               --disable-egl \
+               --disable-gbm \
+               --with-gallium-drivers=swrast,swr \
+               --with-platforms=x11 \
+               --prefix=/usr/local/ \
+               --enable-gallium-osmesa \
+               --disable-xvmc --disable-vdpau --disable-va \
+               --with-swr-archs=avx
+
+RUN make -j `numprocs` && make install
+
+# Setup our environment variables.
+ENV XVFB_WHD="1920x1080x24"\
+    LIBGL_ALWAYS_SOFTWARE="1" \
+    GALLIUM_DRIVER="softpipe"
+
+
 RUN mkdir /home/ngsolve/.vnc
 COPY xstartup /home/ngsolve/.vnc/xstartup
 RUN chmod +x /home/ngsolve/.vnc/xstartup
