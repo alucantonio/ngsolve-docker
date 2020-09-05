@@ -6,48 +6,43 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get update && apt install -y software-properties-common libpython3.8 sudo
 RUN add-apt-repository ppa:ngsolve/ngsolve
 RUN apt-get update && apt-get install -y ngsolve python3-pip
-RUN pip3 install jupyterlab scipy matplotlib ipywidgets
+RUN pip3 install jupyterlab scipy matplotlib ipywidgets mako
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y xfce4 xfce4-goodies tightvncserver nano
 
 RUN useradd -m ngsolve && echo "ngsolve:ngsolve" | chpasswd && adduser ngsolve sudo
 
+# Create VNC config scripts
+RUN mkdir /home/ngsolve/.vnc
+COPY xstartup /home/ngsolve/.vnc/xstartup
+RUN chmod +x /home/ngsolve/.vnc/xstartup
+RUN chown -R ngsolve /home/ngsolve/.vnc
+RUN chgrp -R ngsolve /home/ngsolve/.vnc
+
 # TODO: install and configure some text editor
 
 ########### Mesa with sofware rendering (swpipe) ###########
-RUN apt-get update && apt-get install -y libtool-bin autoconf libx11-dev libxext-dev x11proto-core-dev x11proto-gl-dev libglew-dev freeglut3-dev bison flex
+#RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Build Mesa
-RUN apt-get install -y wget pkg-config zlib1g-dev llvm-dev
-RUN wget https://mesa.freedesktop.org/archive/mesa-18.2.4.tar.xz
-RUN tar xf mesa-18.2.4.tar.xz
-RUN mkdir mesa-18.2.4/build
-WORKDIR mesa-18.2.4/build
+RUN apt-get install -y wget llvm-dev meson ninja-build bison flex
+RUN wget https://mesa.freedesktop.org/archive/mesa-20.1.7.tar.xz
+RUN tar xf mesa-20.1.7.tar.xz
+RUN mkdir mesa-20.1.7/build
+WORKDIR mesa-20.1.7/build
 
-RUN ../configure --disable-dri \
-               --disable-egl \
-               --disable-gbm \
-               --with-gallium-drivers=swrast,swr \
-               --with-platforms=x11 \
-               --prefix=/usr/local/ \
-               --enable-gallium-osmesa \
-               --disable-xvmc --disable-vdpau --disable-va \
-               --with-swr-archs=avx
-
-RUN make -j `numprocs` && make install
+RUN meson -D glx=gallium-xlib -D gallium-drivers=swrast \
+          -D platforms=x11 -D dri3=false -D dri-drivers="" \
+          -D vulkan-drivers="" -D buildtype=release -D optimization=3
+RUN ninja
 
 # Setup our environment variables.
 ENV XVFB_WHD="1920x1080x24"\
     LIBGL_ALWAYS_SOFTWARE="1" \
     GALLIUM_DRIVER="softpipe"
 
-
-RUN mkdir /home/ngsolve/.vnc
-COPY xstartup /home/ngsolve/.vnc/xstartup
-RUN chmod +x /home/ngsolve/.vnc/xstartup
-RUN chown -R ngsolve /home/ngsolve/.vnc
-RUN chgrp -R ngsolve /home/ngsolve/.vnc
+########### END build Mesa ############
 
 USER ngsolve
 
@@ -64,6 +59,5 @@ RUN jupyter nbextension enable --user --py ngsolve
 
 COPY run_jupyterlab.sh /home/ngsolve
 
-WORKDIR /home/ngsolve
 # Needed for vncserver
 ENV USER=ngsolve
