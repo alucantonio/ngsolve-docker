@@ -3,46 +3,38 @@ FROM ubuntu:20.04
 ENV TZ=Europe/Rome
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN apt-get update && apt install -y software-properties-common libpython3.8 sudo
+RUN env DEBIAN_FRONTEND=noninteractive
+
+# Language/locale settings
+#   replace en_US by your desired locale setting,
+#   for example de_DE for german.
+ENV LANG it_IT.UTF-8
+RUN echo $LANG UTF-8 > /etc/locale.gen && \
+    apt-get update && apt-get install -y locales && \
+    update-locale --reset LANG=$LANG
+
+RUN apt-get update && apt-get install -y dbus-x11 procps psmisc && \
+    apt-get install -y xdg-utils xdg-user-dirs menu-xdg mime-support \
+          desktop-file-utils && \
+    apt-get install -y mesa-utils mesa-utils-extra libxv1 tasksel
+
+# Mate desktop (minimal)
+#RUN apt-get update && env DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-mate-desktop
+RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y caja folder-color-caja gnome-colors-common gnome-icon-theme gnome-orca indicator-messages \
+indicator-power indicator-session indicator-sound mate-accessibility-profiles mate-applet-appmenu mate-applet-brisk-menu \
+mate-desktop mate-dock-applet mate-hud mate-icon-theme mate-menu mate-menus mate-system-monitor mate-tweak mate-user-guide \
+mate-utils mate-window-applets-common mate-window-buttons-applet mate-window-menu-applet mate-window-title-applet plank \
+plymouth-theme-ubuntu-mate-logo plymouth-theme-ubuntu-mate-text ubuntu-mate-artwork ubuntu-mate-core \
+ubuntu-mate-default-settings ubuntu-mate-guide ubuntu-mate-icon-themes ubuntu-mate-themes ubuntu-mate-wallpapers* ubuntu-standard --no-install-recommends
+
+RUN apt-get install -y software-properties-common libpython3.8 sudo
 RUN add-apt-repository ppa:ngsolve/ngsolve
 RUN apt-get update && apt-get install -y ngsolve python3-pip
 RUN pip3 install jupyterlab scipy matplotlib ipywidgets mako
 
-ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && apt-get install -y xfce4 xfce4-goodies tightvncserver nano
-
 RUN useradd -m ngsolve && echo "ngsolve:ngsolve" | chpasswd && adduser ngsolve sudo
 
-# Create VNC config scripts
-RUN mkdir /home/ngsolve/.vnc
-COPY xstartup /home/ngsolve/.vnc/xstartup
-RUN chmod +x /home/ngsolve/.vnc/xstartup
-RUN chown -R ngsolve /home/ngsolve/.vnc
-RUN chgrp -R ngsolve /home/ngsolve/.vnc
-
-# TODO: install and configure some text editor
-
-########### Mesa with sofware rendering (swpipe) ###########
-#RUN ln -s /usr/bin/python3 /usr/bin/python
-
-# Build Mesa
-RUN apt-get install -y wget llvm-dev meson ninja-build bison flex
-RUN wget https://mesa.freedesktop.org/archive/mesa-20.1.7.tar.xz
-RUN tar xf mesa-20.1.7.tar.xz
-RUN mkdir mesa-20.1.7/build
-WORKDIR mesa-20.1.7/build
-
-RUN meson -D glx=gallium-xlib -D gallium-drivers=swrast \
-          -D platforms=x11 -D dri3=false -D dri-drivers="" \
-          -D vulkan-drivers="" -D buildtype=release -D optimization=3
-RUN ninja
-
-# Setup our environment variables.
-ENV XVFB_WHD="1920x1080x24"\
-    LIBGL_ALWAYS_SOFTWARE="1" \
-    GALLIUM_DRIVER="softpipe"
-
-########### END build Mesa ############
+RUN apt-get install -y firefox pluma nano vim-gui-common wget unzip chromium-browser
 
 USER ngsolve
 
@@ -59,5 +51,12 @@ RUN jupyter nbextension enable --user --py ngsolve
 
 COPY run_jupyterlab.sh /home/ngsolve
 
+# Install ngsolve i-tutorials
+WORKDIR /home/ngsolve
+RUN wget https://ngsolve.org/docu/latest/i-tutorials.zip && unzip i-tutorials.zip
+
 # Needed for vncserver
 ENV USER=ngsolve
+ENV SHELL=/bin/bash
+
+CMD ["mate-session"]
