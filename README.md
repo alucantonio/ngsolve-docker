@@ -1,22 +1,31 @@
 # ngsolve-docker
 Some simple Dockerfiles to compile and run [netgen/ngsolve](http://ngsolve.org) in Docker containers.
+Graphical output is provided either through host's driver (ngsolve-base image) or via VNC using the approach described in [docker-ubuntu-vnc-desktop](https://github.com/fcwu/docker-ubuntu-vnc-desktop). In the latter case, desktop is Ubuntu-LXQT (Focal).
 
-## Instructions
-- to build the base image (ngsolve installed from .deb package):
+## Instructions (X server running on host)
+- to build the container (installs ngsolve from .deb package):
+
     ```docker build -t ngsolve-base ngsolve-base```
 
-- to create and run the container with graphical support (XServer from host), port forwarding for Jupyter Lab and mounting host local directory:
-    First launch ```xhost +``` from the host's shell; then:
-    ```docker run -it --name ngsolve -e DISPLAY=$DISPLAY -p 8888:8888 -v /tmp/.X11-unix:/tmp/.X11-unix -v $(pwd):/home/ngsolve/mnt ngsolve-base```
-    After using the container, reset host's X server settings with ```xhost -```. To launch Jupyter Lab within the container: ```sh run_jupyterlab.sh```
-    from ```/home/ngsolve```
+- to create and run the container:
+  1. launch ```xhost +``` from the host's shell;
+  2. execute
 
-- to start the container created previously:
-    ```docker start ngsolve```; to attach current console to that of the running container ```docker attach ngsolve```
+    ```docker run -it --name ngsolve -e DISPLAY=$DISPLAY -p 8888:8888 -v /tmp/.X11-unix:/tmp/.X11-unix -v $(pwd):/home/ngsolve/mnt ngsolve-base```;
 
-- to build the container with integrated X11 support: ```docker build -t ngsolve-x11 ngsolve-base```
+  3. to launch Jupyter Lab within the container: ```sh run_jupyterlab.sh``` from ```/home/ngsolve```;
+  4. after using the container, reset host's X server settings with ```xhost -```
 
-- to run the container with X11 session (Mate desktop): ```sudo ./x11docker --desktop --share PATH_TO_SHARE --user=RETAIN ngsolve-x11```
 
-- to compile ngsolve from sources (work in progress):
-    ```docker build -t ngsolve ngsolve```
+- to start the container created previously and open the shell:
+
+    ```docker start ngsolve && docker attach ngsolve```
+
+## Instructions (X server integrated within container, access via VNC)
+- to build the container:
+
+  ```docker build -t ngsolve-vnc ngsolve-lxqt-vnc```
+
+- to run the container:
+
+  launch ```run_vnc.sh``` script in the main folder of the repository.
